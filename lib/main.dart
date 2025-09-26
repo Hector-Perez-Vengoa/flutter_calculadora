@@ -248,7 +248,7 @@ class _CalculatorScreenState extends State<CalculatorScreen>
   }
 }
 
-class CalculatorButton extends StatelessWidget {
+class CalculatorButton extends StatefulWidget {
   final String label;
   final bool isOperator;
   final bool isSpecial;
@@ -263,13 +263,119 @@ class CalculatorButton extends StatelessWidget {
   });
 
   @override
+  State<CalculatorButton> createState() => _CalculatorButtonState();
+}
+
+class _CalculatorButtonState extends State<CalculatorButton>
+    with TickerProviderStateMixin {
+  late AnimationController _pressController;
+  late AnimationController _glowController;
+  late AnimationController _entryController;
+  late Animation<double> _scaleAnimation;
+  late Animation<double> _glowAnimation;
+  late Animation<double> _entryAnimation;
+  late Animation<Offset> _slideAnimation;
+  
+  bool _isPressed = false;
+
+  @override
+  void initState() {
+    super.initState();
+    
+    // Animación de presión
+    _pressController = AnimationController(
+      duration: const Duration(milliseconds: 150),
+      vsync: this,
+    );
+    _scaleAnimation = Tween<double>(
+      begin: 1.0,
+      end: 0.95,
+    ).animate(CurvedAnimation(
+      parent: _pressController,
+      curve: Curves.easeInOut,
+    ));
+    
+    // Animación de resplandor
+    _glowController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _glowAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _glowController,
+      curve: Curves.easeOut,
+    ));
+    
+    // Animación de entrada
+    _entryController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    _entryAnimation = Tween<double>(
+      begin: 0.0,
+      end: 1.0,
+    ).animate(CurvedAnimation(
+      parent: _entryController,
+      curve: Curves.elasticOut,
+    ));
+    _slideAnimation = Tween<Offset>(
+      begin: const Offset(0, 0.3),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(
+      parent: _entryController,
+      curve: Curves.easeOutBack,
+    ));
+    
+    // Iniciar animación de entrada con delay basado en la posición
+    Future.delayed(Duration(milliseconds: (widget.label.hashCode % 500) + 100), () {
+      if (mounted) {
+        _entryController.forward();
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _pressController.dispose();
+    _glowController.dispose();
+    _entryController.dispose();
+    super.dispose();
+  }
+
+  void _handleTapDown(TapDownDetails details) {
+    setState(() {
+      _isPressed = true;
+    });
+    _pressController.forward();
+    _glowController.forward();
+  }
+
+  void _handleTapUp(TapUpDetails details) {
+    setState(() {
+      _isPressed = false;
+    });
+    _pressController.reverse();
+    _glowController.reverse();
+  }
+
+  void _handleTapCancel() {
+    setState(() {
+      _isPressed = false;
+    });
+    _pressController.reverse();
+    _glowController.reverse();
+  }
+
+  @override
   Widget build(BuildContext context) {
     // Definir colores usando la paleta de aurora
     List<Color> gradientColors;
     Color borderColor;
     Color textColor;
     
-    if (isOperator) {
+    if (widget.isOperator) {
       // Botones de operadores con colores aurora azulados
       gradientColors = [
         const Color(0xFF2A3F5F),
@@ -277,7 +383,7 @@ class CalculatorButton extends StatelessWidget {
       ];
       borderColor = const Color(0x88A0B4D8);
       textColor = const Color(0xFFCFCFCF);
-    } else if (isSpecial) {
+    } else if (widget.isSpecial) {
       // Botones especiales con tonos aurora más claros
       gradientColors = [
         const Color(0xFF1F2937),
@@ -295,44 +401,84 @@ class CalculatorButton extends StatelessWidget {
       textColor = const Color(0xFFE0E0E0);
     }
     
-    return Container(
-      height: 70,
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: gradientColors,
-        ),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(
-          color: borderColor,
-          width: 1,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.3),
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Center(
-        child: Text(
-          label,
-          style: Theme.of(context).textTheme.labelLarge?.copyWith(
-            color: textColor,
-            fontSize: 20,
-            fontWeight: FontWeight.w500,
-            shadows: [
-              Shadow(
-                color: Colors.black.withOpacity(0.5),
-                offset: const Offset(0, 1),
-                blurRadius: 2,
+    return AnimatedBuilder(
+      animation: Listenable.merge([_entryController, _pressController, _glowController]),
+      builder: (context, child) {
+        return SlideTransition(
+          position: _slideAnimation,
+          child: ScaleTransition(
+            scale: _entryAnimation,
+            child: Transform.scale(
+              scale: _scaleAnimation.value,
+              child: GestureDetector(
+                onTapDown: _handleTapDown,
+                onTapUp: _handleTapUp,
+                onTapCancel: _handleTapCancel,
+                child: Container(
+                  height: 70,
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: gradientColors,
+                    ),
+                    borderRadius: BorderRadius.circular(14),
+                    border: Border.all(
+                      color: Color.lerp(
+                        borderColor,
+                        borderColor.withOpacity(1.0),
+                        _glowAnimation.value,
+                      )!,
+                      width: 1 + (_glowAnimation.value * 2),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withOpacity(0.3),
+                        blurRadius: 8 + (_glowAnimation.value * 4),
+                        offset: const Offset(0, 4),
+                      ),
+                      if (_glowAnimation.value > 0)
+                        BoxShadow(
+                          color: borderColor.withOpacity(_glowAnimation.value * 0.5),
+                          blurRadius: 20 * _glowAnimation.value,
+                          offset: const Offset(0, 0),
+                        ),
+                    ],
+                  ),
+                  child: Center(
+                    child: AnimatedDefaultTextStyle(
+                      duration: const Duration(milliseconds: 150),
+                      style: Theme.of(context).textTheme.labelLarge!.copyWith(
+                        color: Color.lerp(
+                          textColor,
+                          textColor.withOpacity(0.8),
+                          _isPressed ? 0.3 : 0.0,
+                        ),
+                        fontSize: 20 + (_glowAnimation.value * 2),
+                        fontWeight: FontWeight.w500,
+                        shadows: [
+                          Shadow(
+                            color: Colors.black.withOpacity(0.5),
+                            offset: const Offset(0, 1),
+                            blurRadius: 2,
+                          ),
+                          if (_glowAnimation.value > 0)
+                            Shadow(
+                              color: borderColor.withOpacity(_glowAnimation.value * 0.8),
+                              offset: const Offset(0, 0),
+                              blurRadius: 10 * _glowAnimation.value,
+                            ),
+                        ],
+                      ),
+                      child: Text(widget.label),
+                    ),
+                  ),
+                ),
               ),
-            ],
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
 }
