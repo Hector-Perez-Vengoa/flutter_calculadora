@@ -168,32 +168,73 @@ class _CalculatorScreenState extends State<CalculatorScreen>
               ),
               const SizedBox(height: 20),
               Expanded(
-                child: GridView.count(
-                  crossAxisCount: 4,
-                  childAspectRatio: 1,
-                  crossAxisSpacing: 12,
-                  mainAxisSpacing: 12,
-                  children: const [
-                    CalculatorButton(label: 'C', isOperator: false),
-                    CalculatorButton(label: '+/-', isOperator: false),
-                    CalculatorButton(label: '%', isOperator: false),
-                    CalculatorButton(label: '÷', isOperator: true),
-                    CalculatorButton(label: '7'),
-                    CalculatorButton(label: '8'),
-                    CalculatorButton(label: '9'),
-                    CalculatorButton(label: '×', isOperator: true),
-                    CalculatorButton(label: '4'),
-                    CalculatorButton(label: '5'),
-                    CalculatorButton(label: '6'),
-                    CalculatorButton(label: '-', isOperator: true),
-                    CalculatorButton(label: '1'),
-                    CalculatorButton(label: '2'),
-                    CalculatorButton(label: '3'),
-                    CalculatorButton(label: '+', isOperator: true),
-                    CalculatorButton(label: '0'),
-                    CalculatorButton(label: '.'),
-                    CalculatorButton(label: '⌫', isOperator: false),
-                    CalculatorButton(label: '=', isOperator: true),
+                child: Column(
+                  children: [
+                    // Primera fila: AC, +/-, %, ÷
+                    Row(
+                      children: [
+                        Expanded(child: CalculatorButton(label: 'AC', isOperator: false, isSpecial: true)),
+                        const SizedBox(width: 12),
+                        Expanded(child: CalculatorButton(label: '+/-', isOperator: false, isSpecial: true)),
+                        const SizedBox(width: 12),
+                        Expanded(child: CalculatorButton(label: '%', isOperator: false, isSpecial: true)),
+                        const SizedBox(width: 12),
+                        Expanded(child: CalculatorButton(label: '÷', isOperator: true)),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    // Segunda fila: 7, 8, 9, ×
+                    Row(
+                      children: [
+                        Expanded(child: CalculatorButton(label: '7')),
+                        const SizedBox(width: 12),
+                        Expanded(child: CalculatorButton(label: '8')),
+                        const SizedBox(width: 12),
+                        Expanded(child: CalculatorButton(label: '9')),
+                        const SizedBox(width: 12),
+                        Expanded(child: CalculatorButton(label: '×', isOperator: true)),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    // Tercera fila: 4, 5, 6, -
+                    Row(
+                      children: [
+                        Expanded(child: CalculatorButton(label: '4')),
+                        const SizedBox(width: 12),
+                        Expanded(child: CalculatorButton(label: '5')),
+                        const SizedBox(width: 12),
+                        Expanded(child: CalculatorButton(label: '6')),
+                        const SizedBox(width: 12),
+                        Expanded(child: CalculatorButton(label: '-', isOperator: true)),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    // Cuarta fila: 1, 2, 3, +
+                    Row(
+                      children: [
+                        Expanded(child: CalculatorButton(label: '1')),
+                        const SizedBox(width: 12),
+                        Expanded(child: CalculatorButton(label: '2')),
+                        const SizedBox(width: 12),
+                        Expanded(child: CalculatorButton(label: '3')),
+                        const SizedBox(width: 12),
+                        Expanded(child: CalculatorButton(label: '+', isOperator: true)),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    // Quinta fila: 0 (doble ancho), ., =
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: CalculatorButton(label: '0', isWide: true),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(child: CalculatorButton(label: '.')),
+                        const SizedBox(width: 12),
+                        Expanded(child: CalculatorButton(label: '=', isOperator: true)),
+                      ],
+                    ),
                   ],
                 ),
               ),
@@ -210,36 +251,62 @@ class _CalculatorScreenState extends State<CalculatorScreen>
 class CalculatorButton extends StatelessWidget {
   final String label;
   final bool isOperator;
+  final bool isSpecial;
+  final bool isWide;
 
   const CalculatorButton({
     super.key,
     required this.label,
     this.isOperator = false,
+    this.isSpecial = false,
+    this.isWide = false,
   });
 
   @override
   Widget build(BuildContext context) {
+    // Definir colores usando la paleta de aurora
+    List<Color> gradientColors;
+    Color borderColor;
+    Color textColor;
+    
+    if (isOperator) {
+      // Botones de operadores con colores aurora azulados
+      gradientColors = [
+        const Color(0xFF2A3F5F),
+        const Color(0xFF1A4A5C),
+      ];
+      borderColor = const Color(0x88A0B4D8);
+      textColor = const Color(0xFFCFCFCF);
+    } else if (isSpecial) {
+      // Botones especiales con tonos aurora más claros
+      gradientColors = [
+        const Color(0xFF1F2937),
+        const Color(0xFF374151),
+      ];
+      borderColor = const Color(0x66C0C0C0);
+      textColor = const Color(0xFFE0E0E0);
+    } else {
+      // Botones numéricos con el gradiente original
+      gradientColors = [
+        const Color(0xFF1A2030),
+        const Color(0xFF131826),
+      ];
+      borderColor = const Color(0x335F6B7A);
+      textColor = const Color(0xFFE0E0E0);
+    }
+    
     return Container(
+      height: 70,
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: isOperator 
-              ? [
-                  const Color(0xFF2A2F3A),
-                  const Color(0xFF1E232E),
-                ]
-              : [
-                  const Color(0xFF1A2030),
-                  const Color(0xFF131826),
-                ],
+          colors: gradientColors,
         ),
         borderRadius: BorderRadius.circular(14),
         border: Border.all(
-          color: isOperator 
-              ? const Color(0x88C0C0C0)
-              : const Color(0x335F6B7A), 
-          width: 1
+          color: borderColor,
+          width: 1,
         ),
         boxShadow: [
           BoxShadow(
@@ -253,9 +320,9 @@ class CalculatorButton extends StatelessWidget {
         child: Text(
           label,
           style: Theme.of(context).textTheme.labelLarge?.copyWith(
-            color: isOperator 
-                ? const Color(0xFFCFCFCF)
-                : const Color(0xFFE0E0E0),
+            color: textColor,
+            fontSize: 20,
+            fontWeight: FontWeight.w500,
             shadows: [
               Shadow(
                 color: Colors.black.withOpacity(0.5),
